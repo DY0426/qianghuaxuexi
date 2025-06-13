@@ -1,0 +1,1029 @@
+
+
+\section{探索与利用}
+\subsection{基本概念}
+\begin{itemize}
+    \item \textbf{利用（Exploitation）}：执行已知最优策略以获取稳定收益。
+    \item \textbf{探索（Exploration）}：尝试新策略以发现潜在更高收益，可能牺牲短期回报。
+    \item \textbf{核心矛盾}：短期收益最大化与长期策略优化的权衡。
+\end{itemize}
+
+\subsection{多臂老虎机问题}
+\begin{itemize}
+    \item \textbf{形式化描述}：
+        \begin{itemize}
+            \item 动作集合：\( \mathcal{A} = \{a^1, \dots, a^K\} \)
+            \item 收益分布：\( \mathcal{R}(r \mid a^t) = \mathbb{P}(r \mid a^t) \)
+            \item 目标：最大化累积收益 \( \max \sum_{t=1}^T r_t \)
+        \end{itemize}
+    \item \textbf{核心挑战}：在未知收益分布下平衡探索与利用。
+\end{itemize}
+
+\subsection{经典方法}
+\subsubsection{贪心策略与\(\epsilon\)-贪心}
+\begin{itemize}
+    \item \textbf{贪心策略}：
+        \[
+        a^* = \arg\max_{a^i} Q(a^i), \quad \text{总遗憾（Regret）线性增长}
+        \]
+    \item \textbf{\(\epsilon\)-贪心}：
+        \[
+        a_t = 
+        \begin{cases}
+            \arg\max_a Q(a) & \text{概率 } 1-\epsilon \\
+            \text{随机动作} & \text{概率 } \epsilon
+        \end{cases}
+        \]
+        \begin{itemize}
+            \item 总遗憾仍线性增长，但斜率降低。
+        \end{itemize}
+\end{itemize}
+
+\subsubsection{衰减\(\epsilon\)-贪心}
+\begin{itemize}
+    \item 随时间衰减探索率：\( \epsilon_t = \min\left\{1, \frac{c|\mathcal{A}|}{d^2 t}\right\} \)
+    \item 理论保证：对数渐进遗憾 \( O(\log T) \)。
+\end{itemize}
+
+\subsubsection{乐观初始化}
+\begin{itemize}
+    \item 初始化高估 \( Q(a^i) \)，通过增量更新修正：
+        \[
+        Q(a^i) \leftarrow Q(a^i) + \frac{1}{N(a^i)} (r_t - Q(a^i))
+        \]
+    \item 缺点：可能陷入局部最优。
+\end{itemize}
+
+\subsection{高级方法}
+\subsubsection{上置信界（UCB）}
+\begin{itemize}
+    \item 选择准则：
+        \[
+        a_t = \arg\max_{a \in \mathcal{A}} \left( \hat{Q}(a) + \sqrt{\frac{\log t}{2 N_t(a)}} \right)
+        \]
+    \item 理论保证：总遗憾上限 \( \sigma_R \leq 8 \log T \sum_{a|\Delta_a > 0} \Delta_a \)。
+\end{itemize}
+
+\subsubsection{汤普森采样（Thompson Sampling）}
+\begin{itemize}
+    \item 基于贝叶斯后验分布采样：
+        \[
+        a_t = \arg\max_{a} \theta_a, \quad \theta_a \sim \text{Beta}(S_a + 1, F_a + 1)
+        \]
+    \item 优点：自动平衡探索与利用，实践表现优异。
+\end{itemize}
+
+\subsection{理论下界与总结}
+\begin{itemize}
+    \item \textbf{Lai \& Robbins下界}：
+        \[
+        \lim_{T \to \infty} \sigma_R \geq \log T \sum_{a|\Delta_a > 0} \frac{\Delta_a}{D_{KL}(\mathcal{R}_a \| \mathcal{R}^*)}
+        \]
+    \item \textbf{关键结论}：
+        \begin{itemize}
+            \item 探索与利用是强化学习的核心问题。
+            \item 多臂老虎机是无状态强化学习的简化模型。
+            \item 最优方法（如UCB、汤普森采样）可达对数遗憾。
+        \end{itemize}
+\end{itemize}
+\section{马尔可夫决策过程}
+\subsection{基础概念}
+\begin{itemize}
+    \item \textbf{马尔可夫性质}：未来状态仅依赖当前状态，与历史无关：
+        \[
+        \mathbb{P}[S_{t+1}|S_t] = \mathbb{P}[S_{t+1}|S_1, \dots, S_t]
+        \]
+    \item \textbf{MDP五元组}：\((S, A, \{P_{sa}\}, \gamma, R)\)
+        \begin{itemize}
+            \item 状态集 \(S\)、动作集 \(A\)、状态转移概率 \(P_{sa}(s')\)、折扣因子 \(\gamma \in [0,1]\)、奖励函数 \(R(s,a)\)
+        \end{itemize}
+    \item \textbf{累积奖励}：
+        \[
+        R(s_0) + \gamma R(s_1) + \gamma^2 R(s_2) + \cdots
+        \]
+\end{itemize}
+
+\subsection{占用度量（Occupancy Measure）}
+\begin{itemize}
+    \item 描述策略 \(\pi\) 下状态-动作对的分布：
+        \[
+        \rho^\pi(s,a) = \mathbb{E}_{a \sim \pi(\cdot|s), s' \sim P(\cdot|s,a)} \left[ \sum_{t=0}^T \gamma^t \mathbb{I}(s_t=s, a_t=a) \right]
+        \]
+    \item \textbf{关键定理}：
+        \begin{itemize}
+            \item 占用度量唯一确定策略：\(\rho^{\pi_1} = \rho^{\pi_2} \iff \pi_1 = \pi_2\)
+            \item 累积奖励可表示为：\(V(\pi) = \sum_{s,a} \rho^\pi(s,a) R(s,a)\)
+        \end{itemize}
+\end{itemize}
+
+\subsection{动态规划方法}
+\subsubsection{价值函数与Bellman方程}
+\begin{itemize}
+    \item \textbf{策略价值函数}：
+        \[
+        V^\pi(s) = \mathbb{E}\left[ \sum_{t=0}^\infty \gamma^t R(s_t) \mid s_0=s, \pi \right]
+        \]
+    \item \textbf{Bellman方程}：
+        \[
+        V^\pi(s) = R(s) + \gamma \sum_{s'} P_{s\pi(s)}(s') V^\pi(s')
+        \]
+    \item \textbf{最优价值函数}：
+        \[
+        V^*(s) = \max_\pi V^\pi(s) = R(s) + \max_a \gamma \sum_{s'} P_{sa}(s') V^*(s')
+        \]
+\end{itemize}
+
+\subsubsection{价值迭代与策略迭代}
+\begin{itemize}
+    \item \textbf{价值迭代}：
+        \begin{enumerate}
+            \item 初始化 \(V(s) = 0\)
+            \item 重复更新直至收敛：
+                \[
+                V(s) \leftarrow R(s) + \max_a \gamma \sum_{s'} P_{sa}(s') V(s')
+                \]
+        \end{enumerate}
+    \item \textbf{策略迭代}：
+        \begin{enumerate}
+            \item 随机初始化策略 \(\pi\)
+            \item 交替执行：
+                \begin{itemize}
+                    \item \textbf{策略评估}：计算 \(V^\pi\)（解Bellman方程）
+                    \item \textbf{策略改进}：\(\pi(s) \leftarrow \arg\max_a \sum_{s'} P_{sa}(s') V^\pi(s')\)
+                \end{itemize}
+        \end{enumerate}
+    \item \textbf{对比}：
+        \begin{itemize}
+            \item 价值迭代无显式策略，直接更新价值函数
+            \item 策略迭代需显式计算策略价值，收敛更快但计算量大
+        \end{itemize}
+\end{itemize}
+
+\subsection{基于模型的强化学习}
+\begin{itemize}
+    \item \textbf{模型学习}：从经验数据估计 \(P_{sa}\) 和 \(R\)：
+        \[
+        P_{sa}(s') = \frac{\text{转移次数}(s,a,s')}{\text{动作次数}(s,a)}, \quad R(s) = \text{平均观测奖励}
+        \]
+    \item \textbf{算法流程}：
+        \begin{enumerate}
+            \item 执行策略收集数据
+            \item 估计模型参数 \(P_{sa}\) 和 \(R\)
+            \item 用动态规划求解新策略
+            \item 重复直至收敛
+        \end{enumerate}
+\end{itemize}
+
+\subsection{总结}
+\begin{itemize}
+    \item MDP为序列决策问题提供数学框架，核心是状态转移与奖励函数
+    \item 动态规划方法（价值/策略迭代）适用于已知模型的白盒环境
+    \item 占用度量连接策略与数据分布，是理论分析的重要工具
+    \item 黑盒环境中需先学习模型参数，再应用动态规划
+\end{itemize}
+
+\section{无模型的强化学习-值函数估计}
+\subsection{核心概念}
+\begin{itemize}
+    \item \textbf{模型无关性}：无需已知MDP模型（状态转移$P_{sa}$和奖励函数$R$），直接从经验片段学习。
+    \item \textbf{关键任务}：
+        \begin{itemize}
+            \item 估计值函数 $V^\pi(s)$ 或 $Q^\pi(s,a)$
+            \item 优化策略 $\pi$
+        \end{itemize}
+\end{itemize}
+
+\subsection{蒙特卡洛方法（MC）}
+\begin{itemize}
+    \item \textbf{基本思想}：通过完整片段的累计奖励估计值函数：
+        \[
+        V^\pi(s) \approx \frac{1}{N} \sum_{i=1}^N G_t^{(i)}, \quad G_t = R_{t+1} + \gamma R_{t+2} + \cdots + \gamma^{T-1} R_T
+        \]
+    \item \textbf{增量更新}：
+        \[
+        V(S_t) \leftarrow V(S_t) + \alpha \left( G_t - V(S_t) \right)
+        \]
+    \item \textbf{特性}：
+        \begin{itemize}
+            \item 无偏估计，但高方差
+            \item 需等待片段结束，仅适用于有限片段任务
+        \end{itemize}
+\end{itemize}
+
+\subsection{时序差分学习（TD）}
+\begin{itemize}
+    \item \textbf{基本思想}：通过自举（bootstrapping）结合当前奖励与下一状态估计值：
+        \[
+        V(S_t) \leftarrow V(S_t) + \alpha \left( R_{t+1} + \gamma V(S_{t+1}) - V(S_t) \right)
+        \]
+    \item \textbf{时序差分误差}：$\delta_t = R_{t+1} + \gamma V(S_{t+1}) - V(S_t)$
+    \item \textbf{特性}：
+        \begin{itemize}
+            \item 低方差，但有偏估计
+            \item 可在线学习，适用于连续任务
+        \end{itemize}
+\end{itemize}
+
+\subsection{离线策略与重要性采样}
+\begin{itemize}
+    \item \textbf{目标}：利用策略$\mu$生成的样本评估目标策略$\pi$。
+    \item \textbf{重要性比率}：
+        \[
+        \rho_t = \frac{\pi(a_t|s_t)}{\mu(a_t|s_t)}
+        \]
+    \item \textbf{加权更新}：
+        \begin{itemize}
+            \item MC离线策略：$G_t^{\pi/\mu} = \prod_{k=t}^T \rho_k G_t$
+            \item TD离线策略：$V(s_t) \leftarrow V(s_t) + \alpha \left( \rho_t (r_{t+1} + \gamma V(s_{t+1})) - V(s_t) \right)$
+        \end{itemize}
+    \item \textbf{局限性}：高方差，需满足$\pi(a|s) > 0 \Rightarrow \mu(a|s) > 0$。
+\end{itemize}
+
+\subsection{MC与TD对比}
+
+\begin{table}[H]
+\centering
+\caption{蒙特卡洛(MC)与时序差分(TD)对比}
+\begin{tabular}{lcc}
+\toprule
+\textbf{特性} & \textbf{蒙特卡洛(MC)} & \textbf{时序差分(TD)} \\
+\midrule
+偏差 & 无偏 & 有偏 \\
+方差 & 高 & 低 \\
+在线学习 & 不支持 & 支持 \\
+适用范围 & 片段化任务 & 连续/片段化任务 \\
+收敛性 & 稳定 & 对初始值敏感 \\
+\bottomrule
+\end{tabular}
+\label{tab:mc_vs_td}
+\end{table}
+
+\subsection{总结}
+\begin{itemize}
+    \item \textbf{MC}：直接估计，高方差，适合小规模离散任务。
+    \item \textbf{TD}：高效自举，低方差，适合大规模或连续任务。
+    \item \textbf{离线策略}：通过重要性采样复用数据，但需权衡方差与稳定性。
+    \item \textbf{核心挑战}：在偏差与方差间取得平衡，选择适合问题特性的方法。
+\end{itemize}
+
+\section{Sarsa与Q学习}
+\subsection{SARSA算法}
+\begin{itemize}
+    \item \textbf{在线策略TD控制}：基于当前策略生成的数据进行学习
+    \item \textbf{更新公式}：
+        \[
+        Q(s,a) \leftarrow Q(s,a) + \alpha \left( r + \gamma Q(s',a') - Q(s,a) \right)
+        \]
+    \item \textbf{算法流程}：
+        \begin{enumerate}
+            \item 初始化$Q(s,a)$
+            \item 使用$\epsilon$-greedy策略选择动作$a$
+            \item 执行$a$，观察$(r,s')$
+            \item 在$s'$用相同策略选择$a'$
+            \item 更新$Q(s,a)$
+        \end{enumerate}
+    \item \textbf{特性}：
+        \begin{itemize}
+            \item 保守策略：考虑探索带来的风险（如Windy Gridworld示例）
+            \item 适合需要安全探索的场景
+        \end{itemize}
+\end{itemize}
+
+\subsection{Q学习算法}
+\begin{itemize}
+    \item \textbf{离线策略TD控制}：可学习不同于行为策略的目标策略
+    \item \textbf{更新公式}：
+        \[
+        Q(s,a) \leftarrow Q(s,a) + \alpha \left( r + \gamma \max_{a'} Q(s',a') - Q(s,a) \right)
+        \]
+    \item \textbf{关键特点}：
+        \begin{itemize}
+            \item 直接学习最优策略$Q^*$
+            \item 无需重要性采样（因使用max操作）
+            \item 行为策略$\mu$与目标策略$\pi$分离
+        \end{itemize}
+    \item \textbf{收敛性证明}：
+        \begin{itemize}
+            \item 收缩算子理论：$\|HQ_1-HQ_2\|_\infty \leq \gamma\|Q_1-Q_2\|_\infty$
+            \item 柯西收敛准则保证$Q\rightarrow Q^*$
+        \end{itemize}
+\end{itemize}
+
+\subsection{对比分析}
+\begin{table}[H]
+\centering
+\caption{SARSA与Q学习对比}
+\begin{tabular}{lll}  % 改为标准三列左对齐
+\toprule
+\textbf{特性} & \textbf{SARSA} & \textbf{Q学习} \\
+\midrule
+策略类型 & 在线策略 & 离线策略 \\
+更新目标 & $r+\gamma Q(s',a')$ & $r+\gamma \max\limits_{a'}Q(s',a')$ \\
+探索风险 & 保守（考虑策略随机性） & 激进（总假设最优动作） \\
+适用场景 & 安全关键任务（如机器人控制） & 最大化收益任务（如游戏AI） \\
+收敛性 & 到最优$\epsilon$-soft策略 & 到真正最优策略 \\
+\bottomrule
+\end{tabular}
+\label{tab:sarsa_vs_q}
+\end{table}
+
+\subsection{实验示例}
+\begin{itemize}
+    \item \textbf{Windy Gridworld}：
+        \begin{itemize}
+            \item SARSA学习规避风险路径
+            \item 随训练逐渐优化步数
+        \end{itemize}
+    \item \textbf{Cliff-walking}：
+        \begin{itemize}
+            \item SARSA选择安全路径（更长但更可靠）
+            \item Q学习选择最优路径（高风险高回报）
+        \end{itemize}
+\end{itemize}
+
+\subsection{总结}
+\begin{itemize}
+    \item SARSA适合需要平衡探索安全性的场景
+    \item Q学习能直接收敛到最优策略但可能过度乐观
+    \item 实际选择取决于任务对风险与收益的权衡
+\end{itemize}
+
+\section{多步Sarsa}
+\subsection{多步时序差分学习}
+\subsubsection{多步TD预测}
+\begin{itemize}
+    \item \textbf{n步累计奖励}：
+        \[
+        G_t^{(n)} = R_{t+1} + \gamma R_{t+2} + \cdots + \gamma^{n-1}R_{t+n} + \gamma^n V(S_{t+n})
+        \]
+    \item \textbf{更新规则}：
+        \[
+        V(S_t) \leftarrow V(S_t) + \alpha \left( G_t^{(n)} - V(S_t) \right)
+        \]
+    \item \textbf{特殊情形}：
+        \begin{itemize}
+            \item $n=1$：TD(0)
+            \item $n=\infty$：蒙特卡洛方法
+        \end{itemize}
+\end{itemize}
+
+\subsubsection{TD($\lambda$)算法}
+\begin{itemize}
+    \item \textbf{$\lambda$-累计奖励}：
+        \[
+        G_t^\lambda = (1-\lambda)\sum_{n=1}^{T-t-1}\lambda^{n-1}G_t^{(n)} + \lambda^{T-t-1}G_t
+        \]
+    \item \textbf{权重分配}：
+        \begin{center}
+            \begin{table}[H]  % 使用[H]强制定位
+                \centering
+                \caption{$\lambda$值与等效算法对应关系}
+                    \begin{tabular}{cc}
+                    \toprule
+                    $\lambda$值 & 等效算法 \\
+                    \midrule
+                    0 & TD(0) \\
+                    1 & 蒙特卡洛 \\
+                    $(0,1)$ & 多步TD加权平均 \\
+                    \bottomrule
+                    \end{tabular}
+            \end{table}
+        \end{center}
+\end{itemize}
+
+\subsection{多步SARSA算法}
+\subsubsection{基本形式}
+\[
+G_{t:t+n} = R_{t+1} + \gamma R_{t+2} + \cdots + \gamma^{n-1}R_{t+n} + \gamma^n Q(S_{t+n},A_{t+n})
+\]
+\[
+Q(S_t,A_t) \leftarrow Q(S_t,A_t) + \alpha \left( G_{t:t+n} - Q(S_t,A_t) \right)
+\]
+
+\subsubsection{离线策略多步SARSA}
+\begin{itemize}
+    \item \textbf{重要性采样比率}：
+        \[
+        \rho_{t:h} = \prod_{k=t}^{\min(h,T-1)} \frac{\pi(A_k|S_k)}{b(A_k|S_k)}
+        \]
+    \item \textbf{加权更新}：
+        \[
+        Q(S_t,A_t) \leftarrow Q(S_t,A_t) + \alpha \rho_{t+1:t+n} \left( G_{t:t+n} - Q(S_t,A_t) \right)
+        \]
+\end{itemize}
+
+\subsection{多步树回溯算法}
+\begin{itemize}
+    \item \textbf{核心思想}：通过期望值替代采样，避免重要性采样
+    \item \textbf{n步更新目标}：
+        \[
+        G_{t:t+n} = R_{t+1} + \gamma \sum_{a \neq A_{t+1}} \pi(a|S_{t+1})Q(S_{t+1},a) + \gamma \pi(A_{t+1}|S_{t+1})G_{t+1:t+n}
+        \]
+    \item \textbf{优势}：
+        \begin{itemize}
+            \item 无重要性采样带来的高方差
+            \item 保持离线策略学习的灵活性
+        \end{itemize}
+\end{itemize}
+
+\subsection{各时序差分控制算法对比}
+\begin{table}[H]  % 使用[H]强制定位
+\centering
+\caption{时序差分控制算法对比}
+\begin{tabular}{llll}
+\toprule
+\textbf{算法} & \textbf{策略类型} & \textbf{更新方式} & \textbf{复杂度} \\
+\midrule
+单步SARSA & 在线策略 & $Q(s,a) \leftarrow r+\gamma Q(s',a')$ & 低 \\
+多步SARSA & 在线策略 & $n$步累计奖励 & 中 \\
+Q学习 & 离线策略 & $\max_{a'}Q(s',a')$ & 低 \\
+树回溯 & 离线策略 & 期望值展开 & 高 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{实验分析}
+\begin{itemize}
+    \item \textbf{随机游走任务}：
+        \begin{itemize}
+            \item 多步TD($\lambda$)在$\lambda \approx 0.9$时取得最佳表现
+            \item n=4的多步方法优于单步和蒙特卡洛
+        \end{itemize}
+    \item \textbf{悬崖漫步任务}：
+        \begin{itemize}
+            \item 多步SARSA比Q学习更保守
+            \item 树回溯算法平衡了探索与利用
+        \end{itemize}
+\end{itemize}
+
+\subsection{总结}
+\begin{itemize}
+    \item 多步方法在偏差-方差权衡上优于单步方法
+    \item TD($\lambda$)通过参数$\lambda$灵活调整时间跨度
+    \item 树回溯算法为离线策略学习提供了新思路
+    \item 实际应用需根据任务特性选择时间步长n和$\lambda$
+\end{itemize}
+
+\section{规划与学习}
+\subsection{规划与学习 (1)}
+\subsubsection{规划与学习基础}
+\paragraph{策略评估与提升}
+\begin{itemize}
+    \item \textbf{策略评估}：
+        \[
+        V^\pi(s) = \mathbb{E}_\pi\left[\sum_{k=0}^\infty \gamma^k R_{t+k+1} \mid S_t=s\right]
+        \]
+    \item \textbf{策略提升定理}：若$\pi'$满足$Q^\pi(s,\pi'(s)) \geq V^\pi(s)$，则$\pi'$优于$\pi$
+        \[
+        V^{\pi'}(s) \geq V^\pi(s),\quad \forall s \in \mathcal{S}
+        \]
+\end{itemize}
+
+\subsubsection{模型与规划}
+\begin{itemize}
+    \item \textbf{模型定义}：
+        \begin{itemize}
+            \item 分布模型：$p(s',r|s,a)$
+            \item 样本模型：生成$(s',r)$样本
+        \end{itemize}
+    \item \textbf{规划分类}：
+        \begin{table}[H]  % 使用[H]强制定位
+            \centering
+            \caption{规划方法类型对比}
+            \begin{tabular}{ll}
+            \toprule
+            \textbf{类型} & \textbf{特点} \\
+            \midrule
+            状态空间规划 & 在状态空间中搜索最优策略 \\
+            规划空间规划 & 在动作序列空间中搜索 \\
+            \bottomrule
+            \end{tabular}
+        \end{table}
+
+\end{itemize}
+
+\subsubsection{Dyna架构}
+\paragraph{核心思想}
+\begin{itemize}
+    \item \textbf{三要素集成}：
+        \begin{itemize}
+            \item 真实经验：与环境交互
+            \item 模型学习：估计$p(s',r|s,a)$
+            \item 规划：利用模型生成模拟经验
+        \end{itemize}
+    \item \textbf{数据流}：
+        \begin{figure}[h]
+\centering
+\begin{tikzpicture}[node distance=6cm]
+    \node (env) {环境};
+    \node (model) [right of=env] {模型};
+    \node (value) [above of=model] {值函数/策略};
+    \draw[->] (env) -- node[midway,above] {真实经验} (model);
+    \draw[->] (model) -- node[midway,right] {模拟经验} (value);
+    \draw[->] (value) -- node[midway,left] {动作} (env);
+\end{tikzpicture}
+\captionof{figure}{强化学习中的环境-模型-策略交互关系} % 专业图题注
+\label{fig:rl_interaction}
+\end{figure}
+\end{itemize}
+
+\subsubsection{Dyna-Q算法}
+\begin{algorithm}[H]
+\caption{表格型Dyna-Q}
+\begin{algorithmic}[1]
+\REQUIRE 状态空间 $\mathcal{S}$，动作空间 $\mathcal{A}(s)$
+\FOR{每个 $s \in \mathcal{S}$, $a \in \mathcal{A}(s)$}
+    \STATE 初始化 $Q(s,a)$ 和 $\text{Model}(s,a)$
+\ENDFOR
+\WHILE{未收敛}
+    \STATE $S \leftarrow$ 当前状态
+    \STATE $A \leftarrow \epsilon$-greedy($S,Q$)
+    \STATE 执行 $A$，观测 $R,S'$
+    \STATE $Q(S,A) \leftarrow Q(S,A) + \alpha[R+\gamma\max_a Q(S',a)-Q(S,A)]$
+    \STATE $\text{Model}(S,A) \leftarrow (R,S')$
+    \FOR{$i=1$ to $n$}
+        \STATE $S \leftarrow$ 随机已访问状态
+        \STATE $A \leftarrow$ 随机已执行动作
+        \STATE $(R,S') \leftarrow \text{Model}(S,A)$
+        \STATE $Q(S,A) \leftarrow Q(S,A) + \alpha[R+\gamma\max_a Q(S',a)-Q(S,A)]$
+    \ENDFOR
+\ENDWHILE
+\end{algorithmic}
+\end{algorithm}
+
+
+\subsubsection{实验与分析}
+\begin{itemize}
+    \item \textbf{迷宫任务}：
+        \begin{itemize}
+            \item 规划步数$n$越大，收敛越快
+            \item $n=50$时比纯无模型学习快10倍
+        \end{itemize}
+    \item \textbf{动态环境适应}：
+        \begin{itemize}
+            \item Dyna-Q+可检测环境变化（如捷径出现）
+            \item 通过给未访问状态动作对附加奖励实现
+        \end{itemize}
+\end{itemize}
+
+\subsubsection{理论启示}
+\begin{itemize}
+    \item \textbf{规划-学习对偶性}：
+        \begin{itemize}
+            \item 规划：基于模型的策略搜索
+            \item 学习：基于经验的模型构建
+        \end{itemize}
+    \item \textbf{关键优势}：
+        \begin{itemize}
+            \item 样本效率提升：复用真实经验
+            \item 灵活中断：可随时停止规划过程
+        \end{itemize}
+\end{itemize}
+\subsection{规划与学习 (2)}
+\subsubsection{高效规划方法}
+\paragraph{优先级采样}
+\begin{itemize}
+    \item \textbf{核心思想}：根据Bellman误差动态调整更新优先级
+    \[
+    P = \left| R + \gamma \max_a Q(S',a) - Q(S,A) \right|
+    \]
+    \item \textbf{算法流程}：
+        \begin{enumerate}
+            \item 维护优先级队列$PQueue$
+            \item 当$P > \theta$时插入队列
+            \item 优先更新高误差的状态动作对
+        \end{enumerate}
+    \item \textbf{优势}：迷宫任务中比Dyna-Q快3-5倍
+\end{itemize}
+
+\subsubsection{期望更新 vs 采样更新}
+    \begin{table}[H]  % 使用[H]强制定位
+        \centering
+        \caption{两种更新方式对比}
+        \begin{tabular}{lll}
+        \toprule
+        \textbf{类型} & \textbf{计算复杂度} & \textbf{适用场景} \\
+        \midrule
+        期望更新 & $O(|\mathcal{S}||\mathcal{A}|b)$ & 分支因子$b$小的确定性环境 \\
+        采样更新 & $O(1)$ & 大分支因子随机环境 \\
+        \bottomrule
+        \end{tabular}
+    \end{table}
+
+\subsubsection{决策时规划}
+\paragraph{实时动态规划(RTDP)}
+\begin{itemize}
+    \item \textbf{特点}：
+        \begin{itemize}
+            \item 仅更新轨迹访问的状态
+            \item 在跑道问题中更新次数比DP少50\%
+        \end{itemize}
+    \item \textbf{收敛条件}：
+        \[
+        \forall s \in \mathcal{S}_0, \lim_{k\to\infty} V_k(s) = V^*(s)
+        \]
+        其中$\mathcal{S}_0$为初始状态集
+\end{itemize}
+
+\subsubsection{蒙特卡洛树搜索(MCTS)}
+\begin{algorithm}[H]
+    \caption{MCTS核心流程}
+    \begin{algorithmic}[1]
+        \WHILE{计算资源未耗尽}
+            \STATE \textbf{Selection}: 根据UCT选择节点
+            \STATE \textbf{Expansion}: 扩展未探索动作
+            \STATE \textbf{Simulation}: Rollout策略模拟
+            \STATE \textbf{Backpropagation}: 回溯更新价值
+        \ENDWHILE
+        \RETURN 最优动作
+    \end{algorithmic}
+\end{algorithm}
+
+\subsubsection{性能对比}
+\begin{itemize}
+\item \textbf{Dyna-Q}:
+  \begin{itemize}
+  \item 优点：模型学习稳定，适合中等规模问题。
+  \item 缺点：内存占用较高（约50MB）。
+  \item 平均运行时间：12.3秒。
+  \end{itemize}
+
+\item \textbf{RTDP}:
+  \begin{itemize}
+  \item 优点：实时性强，收敛最快（150次迭代）。
+  \item 缺点：对初始策略敏感。
+  \item 成功率：88\%。
+  \end{itemize}
+
+\item \textbf{MCTS}:
+  \begin{itemize}
+  \item 优点：无需环境模型，适合复杂决策。
+  \item 缺点：计算资源需求高（120MB内存）。
+  \item 适用场景：非确定性环境。
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{理论启示}
+\begin{itemize}
+    \item \textbf{三要素平衡}：
+        \begin{itemize}
+            \item 精度（期望更新）
+            \item 效率（采样更新）
+            \item 实时性（决策时规划）
+        \end{itemize}
+    \item \textbf{应用选择指南}：
+       
+        \begin{table}[H]  % 使用[H]强制定位
+            \centering
+            \caption{不同场景下的推荐算法}
+            \begin{tabular}{ll}
+            \toprule
+            \textbf{场景} & \textbf{推荐算法} \\
+            \midrule
+            小规模确定性环境 & 优先级采样Dyna \\
+            大规模连续空间 & RTDP \\
+            离散动作决策优化 & MCTS \\
+            \bottomrule
+            \end{tabular}
+        \end{table}
+
+\end{itemize}
+
+\section{近似逼近方法}
+\subsection{近似逼近方法 (1)}
+
+\subsubsection{大规模MDP的挑战}
+\begin{itemize}
+    \item 传统方法需维护查询表 ($V(s)$ 或 $Q(s,a)$)，但面临:
+    \begin{itemize}
+        \item 状态/动作空间过大（如围棋 $10^{170}$ 状态）
+        \item 连续状态/动作空间（如自动驾驶）
+    \end{itemize}
+    \item 解决方法:
+    \begin{itemize}
+        \item 离散化/分桶
+        \item 参数化值函数估计
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{离散化方法}
+\begin{itemize}
+    \item \textbf{优点}: 直观、高效、适用于多数问题。
+    \item \textbf{缺点}: 
+    \begin{itemize}
+        \item 简化价值函数表示（常数值假设）
+        \item 维度灾难: $S = \mathbb{R}^n \Rightarrow \bar{S} = \{1, \dots, k\}^n$
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{参数化值函数近似}
+\begin{itemize}
+    \item 目标: 近似真实值函数
+    \[
+        V_\theta(s) \simeq V^\pi(s), \quad Q_\theta(s,a) \simeq Q^\pi(s,a)
+    \]
+    \item 参数 $\theta$ 通过强化学习更新，实现状态泛化。
+    \item \textbf{函数形式}:
+    \begin{itemize}
+        \item 线性模型: $V_\theta(s) = \theta^T x(s)$
+        \item 神经网络、决策树、傅立叶基底等
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{随机梯度下降 (SGD)}
+\begin{itemize}
+    \item 最小化均方误差:
+    \[
+        J(\theta) = \mathbb{E}_\pi \left[ \frac{1}{2} (V^\pi(s) - V_\theta(s))^2 \right]
+    \]
+    \item 梯度更新:
+    \[
+        \theta \leftarrow \theta + \alpha (V^\pi(s) - V_\theta(s)) \nabla_\theta V_\theta(s)
+    \]
+\end{itemize}
+
+\subsubsection{算法实现}
+\begin{itemize}
+    \item \textbf{蒙特卡洛}:
+    \[
+        \theta \leftarrow \theta + \alpha (G_t - V_\theta(s)) x(s_t)
+    \]
+    \item \textbf{时序差分 (TD)}:
+    \[
+        \theta \leftarrow \theta + \alpha (r_{t+1} + \gamma V_\theta(s_{t+1}) - V_\theta(s)) x(s_t)
+    \]
+    \item \textbf{状态-动作值近似}:
+    \[
+        Q_\theta(s,a) = \theta^T x(s,a), \quad \theta \leftarrow \theta + \alpha (r_{t+1} + \gamma Q_\theta(s_{t+1},a_{t+1}) - Q_\theta(s,a)) x(s,a)
+    \]
+\end{itemize}
+
+\subsubsection{关键结论}
+\begin{itemize}
+    \item 参数化方法优于离散化，适合非稳态、非独立同分布数据。
+    \item 线性模型在蒙特卡洛和TD中可收敛至全局最优。
+    \item TD目标含$\theta$但无需计算其梯度（因目标视为固定采样）。
+\end{itemize}
+
+\subsection{近似逼近方法 (2)}
+
+\subsubsection{案例分析：Deep Q-Network (DQN)}
+\begin{itemize}
+    \item \textbf{核心思想}：使用深度神经网络表示Q函数，解决高维状态空间问题。
+    \item \textbf{损失函数}：
+    \[
+    L_t(\theta_i) = \mathbb{E}_{(s,a,r,s') \sim U(D)} \left[ \left( r + \gamma \max_{a'} Q(s',a'; \theta_i^-) - Q(s,a; \theta_i) \right)^2 \right]
+    \]
+    \item \textbf{关键技术}：
+    \begin{itemize}
+        \item 目标网络（$\theta_i^-$）与在线网络（$\theta_i$）分离，稳定训练。
+        \item 经验回放（Replay Buffer $D$），避免数据相关性。
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{策略梯度方法}
+\paragraph{参数化策略}
+\begin{itemize}
+    \item 随机策略：$\pi_\theta(a|s) = P(a|s; \theta)$
+    \item 确定性策略：$a = \pi_\theta(s)$
+\end{itemize}
+
+\paragraph{策略梯度定理}
+\begin{itemize}
+    \item 核心公式：
+    \[
+    \frac{\partial J(\theta)}{\partial \theta} = \mathbb{E}_{\pi_\theta} \left[ \frac{\partial \log \pi_\theta(a|s)}{\partial \theta} Q^{\pi}(s,a) \right]
+    \]
+    \item 适用于多步MDP，通过长期价值函数$Q^{\pi}(s,a)$替代瞬时奖励。
+\end{itemize}
+
+\paragraph{蒙特卡洛策略梯度（REINFORCE）}
+\begin{itemize}
+    \item 更新规则：
+    \[
+    \Delta \theta_t = \alpha \frac{\partial \log \pi_\theta(a_t|s_t)}{\partial \theta} G_t
+    \]
+    \item 优点：无偏估计；缺点：高方差、低数据效率。
+    \item 伪代码：
+    \begin{lstlisting}
+initialize (*$\theta$*)
+for each episode {s1,a1,r2,...,sT} ~ (*$\pi_\theta$*) do
+    for t=1 to T-1 do
+        (*$\theta \leftarrow \theta + \alpha \nabla_\theta \log \pi_\theta(a_t|s_t) G_t$*)
+    end for
+end for
+    \end{lstlisting}
+\end{itemize}
+
+\paragraph{Softmax随机策略}
+\begin{itemize}
+    \item 策略定义：
+    \[
+    \pi_\theta(a|s) = \frac{e^{f_\theta(s,a)}}{\sum_{a'} e^{f_\theta(s,a')}}
+    \]
+    \item 梯度计算（线性参数化时）：
+    \[
+    \frac{\partial \log \pi_\theta(a|s)}{\partial \theta} = x(s,a) - \mathbb{E}_{a' \sim \pi_\theta}[x(s,a')]
+    \]
+\end{itemize}
+
+\subsubsection{Actor-Critic框架}
+\paragraph{核心思想}
+\begin{itemize}
+    \item \textbf{Actor}（策略$\pi_\theta$）：选择动作，通过策略梯度更新。
+    \item \textbf{Critic}（值函数$Q_\Phi$）：评估动作价值，指导Actor更新。
+    \item 目标函数：
+    \[
+    J(\theta) = \mathbb{E}_{\pi_\theta} \left[ \pi_\theta(a|s) Q_\Phi(s,a) \right]
+    \]
+\end{itemize}
+
+\paragraph{Advantage Actor-Critic (A2C)}
+\begin{itemize}
+    \item 优势函数：
+    \[
+    A^{\pi}(s,a) = Q^{\pi}(s,a) - V^{\pi}(s)
+    \]
+    \item 降低方差，提升训练稳定性：
+    \[
+    \frac{\partial J(\theta)}{\partial \theta} = \mathbb{E}_{\pi_\theta} \left[ \frac{\partial \log \pi_\theta(a|s)}{\partial \theta} A^{\pi}(s,a) \right]
+    \]
+\end{itemize}
+
+\subsubsection{总结}
+\begin{itemize}
+    \item 策略梯度方法直接优化策略参数，适合连续动作空间和高维问题。
+    \item Actor-Critic结合值函数与策略梯度，平衡偏差与方差。
+    \item DQN与策略梯度是深度强化学习的核心基础，分别适用于离散和连续控制问题。
+\end{itemize}
+
+\section{深度强化学习价值方法}
+
+\subsection{深度Q网络（DQN）}
+\begin{itemize}
+    \item \textbf{关键技术}：
+    \begin{itemize}
+        \item 经验回放：存储转移样本 \((s_t, a_t, r_t, s_{t+1})\) 到缓冲池，均匀采样以打破相关性。
+        \item 目标网络：使用独立网络 \(Q_{\theta^-}\) 计算目标值，每隔\(C\)步同步参数。
+    \end{itemize}
+    \item \textbf{损失函数}：
+    \[
+    L(\theta) = \mathbb{E}_{(s,a,r,s') \sim D} \left[ \left( r + \gamma \max_{a'} Q_{\theta^-}(s', a') - Q_\theta(s, a) \right)^2 \right]
+    \]
+    \item \textbf{优点}：解决高维状态空间问题；\textbf{缺点}：Q值过估计。
+\end{itemize}
+
+\subsection{Double DQN}
+\begin{itemize}
+    \item \textbf{核心改进}：解耦动作选择与价值评估：
+    \[
+    y_t = r_t + \gamma Q_{\theta^-}(s_{t+1}, \arg\max_{a'} Q_\theta(s_{t+1}, a'))
+    \]
+    \item \textbf{解决过估计}：通过分离目标网络和策略网络，减少\(\max\)操作带来的偏差。
+    \item \textbf{数学依据}：对于随机变量\(X_1, X_2\)，有
+    \[
+    \mathbb{E}[\max(X_1, X_2)] \geq \max(\mathbb{E}[X_1], \mathbb{E}[X_2])
+    \]
+\end{itemize}
+
+\subsection{Dueling DQN}
+\begin{itemize}
+    \item \textbf{网络结构}：将Q值分解为状态值\(V(s)\)和优势函数\(A(s,a)\)：
+    \[
+    Q(s,a; \theta, \alpha, \beta) = V(s; \theta, \beta) + \left( A(s,a; \theta, \alpha) - \frac{1}{|A|}\sum_{a'} A(s,a'; \theta, \alpha) \right)
+    \]
+    \item \textbf{优势}：
+    \begin{itemize}
+        \item 更高效学习状态价值，尤其在动作影响较小时。
+        \item 减少冗余学习，提升泛化能力。
+    \end{itemize}
+\end{itemize}
+
+\subsection{Rainbow算法}
+\begin{itemize}
+    \item \textbf{集成技术}：结合DQN、Double DQN、优先经验回放、Dueling DQN、分布式DQN、NoisyNet等。
+    \item \textbf{性能}：在Atari游戏中达到超越人类的表现。
+\end{itemize}
+
+\subsection{关键挑战与解决方案}
+\begin{table}[H] % 大写H强制定位
+\centering
+\caption{深度强化学习挑战与解决方案}
+\begin{tabular}{ll}
+\toprule
+\textbf{挑战} & \textbf{解决方案} \\
+\midrule
+高维状态空间 & 使用CNN提取特征 \\
+数据相关性 & 经验回放缓冲池 \\
+Q值过估计 & Double DQN \\
+训练不稳定 & 目标网络 \\
+稀疏奖励 & Dueling架构 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{总结}
+\begin{itemize}
+    \item DQN系列算法通过神经网络近似Q函数，解决了传统强化学习在高维空间的局限性。
+    \item 核心创新：经验回放、目标网络、值函数分解（Dueling）、解耦评估（Double DQN）。
+    \item 未来方向：更高效的探索策略、多任务学习、理论收敛性分析。
+\end{itemize}
+
+\section{深度强化学习策略方法}
+\subsection{深度强化学习分类}
+\begin{itemize}
+    \item \textbf{基于价值的方法}：DQN系列（Double DQN, Dueling DQN）
+    \item \textbf{基于随机策略的方法}：
+    \begin{itemize}
+        \item REINFORCE：$\nabla_\theta J(\theta) = \mathbb{E}[\nabla_\theta \log \pi_\theta(a|s) G_t]$
+        \item A3C：异步优势Actor-Critic
+        \item PPO/TRPO：信任域策略优化
+    \end{itemize}
+    \item \textbf{基于确定性策略的方法}：
+    \begin{itemize}
+        \item DPG：$\nabla_\theta J = \mathbb{E}[\nabla_\theta \pi_\theta(s) \nabla_a Q^w(s,a)|_{a=\pi_\theta(s)}]$
+        \item DDPG：DPG + 经验回放 + 目标网络
+    \end{itemize}
+\end{itemize}
+
+\subsection{核心算法原理}
+\subsubsection{策略梯度定理}
+\[
+\frac{\partial J(\theta)}{\partial \theta} = \mathbb{E}_{\pi_\theta}\left[\frac{\partial \log \pi_\theta(a|s)}{\partial \theta} Q^{\pi_\theta}(s,a)\right]
+\]
+\begin{itemize}
+    \item 适用于随机策略（Softmax形式）：
+    \[
+    \pi_\theta(a|s) = \frac{e^{f_\theta(s,a)}}{\sum_{a'} e^{f_\theta(s,a')}}
+    \]
+    \item 梯度计算：
+    \[
+    \nabla_\theta \log \pi_\theta(a|s) = \nabla_\theta f_\theta(s,a) - \mathbb{E}_{a'}[\nabla_\theta f_\theta(s,a')]
+    \]
+\end{itemize}
+
+\subsubsection{A3C (异步优势Actor-Critic)}
+\begin{itemize}
+    \item \textbf{核心思想}：
+    \begin{itemize}
+        \item 并行多个Worker与环境交互
+        \item 使用优势函数降低方差：$A(s,a) = \sum_{i=0}^{k-1} \gamma^i r_{t+i} + \gamma^k V(s_{t+k}) - V(s_t)$
+    \end{itemize}
+    \item \textbf{伪代码}：
+    \begin{algorithmic}[1]
+        \STATE 全局共享参数 $\theta$, $\theta_v$
+        \FOR{每个Worker线程}
+        \STATE 同步线程参数 $\theta' \gets \theta$, $\theta_v' \gets \theta_v$
+        \STATE 采集轨迹数据 $\tau = \{s_t,a_t,r_t\}$
+        \STATE 计算优势 $A(s_t,a_t) = R_t - V(s_t;\theta_v')$
+        \STATE 累计梯度 $d\theta \gets \sum \nabla_{\theta'} \log \pi(a_t|s_t)A(s_t,a_t)$
+        \STATE 异步更新全局参数
+        \ENDFOR
+    \end{algorithmic}
+\end{itemize}
+
+\subsubsection{DDPG (深度确定性策略梯度)}
+\begin{itemize}
+    \item \textbf{关键技术}：
+    \begin{itemize}
+        \item 确定性策略：$a = \pi_\theta(s)$
+        \item Critic网络：最小化TD误差 $L(w) = \mathbb{E}[(Q^w(s,a) - Q^\pi(s,a))^2]$
+        \item 目标网络软更新：$\theta' \gets \tau \theta + (1-\tau)\theta'$
+    \end{itemize}
+    \item \textbf{策略梯度}：
+    \[
+    \nabla_\theta J = \mathbb{E}_{s\sim \rho^\pi}[\nabla_\theta \pi_\theta(s) \nabla_a Q^w(s,a)|_{a=\pi_\theta(s)}]
+    \]
+\end{itemize}
+
+\subsection{对比实验}
+\begin{table}[H] % 大写H强制定位
+\centering
+\caption{Atari游戏性能对比}
+\begin{tabular}{lcc}
+\toprule
+方法 & 训练时间 & 人类标准化得分 \\ 
+\midrule
+DQN & 8天 (GPU) & 121.9\% \\
+A3C (CPU) & 1天 & 344.1\% \\
+DDPG & 4天 (GPU) & 优于DPG 200\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{关键结论}
+\begin{itemize}
+    \item \textbf{随机策略}：适合离散动作空间，但高方差
+    \item \textbf{确定性策略}：适合连续控制，需配合探索噪声
+    \item \textbf{并行训练}：A3C通过异步更新加速收敛
+    \item \textbf{稳定性技巧}：目标网络、经验回放对DDPG至关重要
+\end{itemize}
+
+
+\section{写在最后}
+\subsection{发布地址}
+\begin{itemize}
+    \item Github: 
+    \url{https://github.com}
+
+\end{itemize}

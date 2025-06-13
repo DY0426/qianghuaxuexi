@@ -1,0 +1,45 @@
+%!TeX program = xelatex
+\documentclass[12pt,a4paper,UTF8]{ctexart}
+\usepackage{algorithm,algorithmic}  % 算法环境
+\usepackage{amsmath}                % 基本数学支持
+\usepackage{tikz} % 必须添加此包才能使用tikzpicture环境
+\usetikzlibrary{positioning} % 用于节点定位的库
+\usepackage{ctex}  % 中文支持
+\usepackage{algorithm, algorithmic, amsfonts, float}
+\usepackage{swjtuReport}
+\usepackage{amsmath}
+\usepackage{array}
+\usepackage{amssymb}
+\usepackage{pgfplots}
+\usepackage{caption}
+\usepackage{listings}
+\usepackage{booktabs} % 更专业的表格线
+\lstset{escapeinside={(*}{*)}}
+\pgfplotsset{compat=1.18} % 设置兼容版本
+
+% 将一级标题改成“第1章”，若\arabic改成\chinese即为“第一章”
+% \usepackage{titletoc}         
+% \ctexset{section={name={第,章},number={\arabic{section}}}}   
+
+\begin{document}
+%%------------------------------封面------------------------------%%
+\cover
+\thispagestyle{empty} % 首页不显示页码
+
+%%------------------------------目录页----------------------------%%
+\newpage
+\begin{center}
+    \tableofcontents
+\end{center}
+%%------------------------------正文------------------------------%%
+\newpage
+\pagenumbering{arabic} % 重新计算页码，并将正文的页码设置成阿拉伯数字页码
+
+\include{chapters/107552403966}
+
+%%------------------------------参考文献---------------------------%%
+\newpage
+% \reference
+% \addcontentsline{toc}{section}{参考文献}   % 将参考文献作为一级标题加入到目录
+
+\end{document}
